@@ -18,13 +18,19 @@ function M.setup()
       call luaeval("require('tabline').switchTab(_A)", a:arg)
     endfunction
   ]]
+
+  function _G.__tabline()
+    return  M.tabs()
+  end
+
+  vim.opt.showtabline = 2
+  vim.opt.tabline = '%!v:lua.__tabline()'
 end
 
 local function highlight(hl, str, hl_end) 
   str = '%#' .. hl .. '#' .. str
   if hl_end ~= nil then
-    print(hl_end)
-    return str .. '%#' .. hl_end .. '#'
+return str .. '%#' .. hl_end .. '#'
   end
   return str
 end
@@ -34,7 +40,6 @@ local function click_handler(handler, arg, str)
 end
 
 function M.switchTab(tab_id)
-  -- print(vim.inspect({ ... }))
   api.nvim_set_current_tabpage(tab_id)
 end
 
@@ -43,7 +48,9 @@ function M.tabs()
 
   local current_tab_id = api.nvim_get_current_tabpage()
 
+  local lastActive = false
   for _,tab_id in ipairs(api.nvim_list_tabpages()) do
+    lastActive = tab_id == current_tab_id
     local buf_names = {}
     local bufs = {}
 
@@ -68,8 +75,8 @@ function M.tabs()
       end
 
       local filepath = vim.fn.expand("#" .. buf_id .. ":p:~")
-      local name = vim.fn.fnamemodify(filepath, ":p:t")
-      local filetype = vim.fn.getbufvar(buf_id, "&filetype")
+      -- local name = vim.fn.fnamemodify(filepath, ":p:t")
+      -- local filetype = vim.fn.getbufvar(buf_id, "&filetype")
 
       local root = vim.fn.fnamemodify(filepath, ":r")
       local ext = vim.fn.fnamemodify(filepath, ":e")
@@ -119,7 +126,14 @@ function M.tabs()
     table.insert(tabs, tab)
   end
 
-  return table.concat(tabs, highlight('TablineBackground', ''))
+  local out = table.concat(tabs, highlight('TablineBackground', ''))
+  if lastActive then
+    out = out .. highlight('TablineBackground', '')
+  else
+    out = out .. highlight('TablineTabMeta', '⏐', 'TablineBackground')
+  end
+
+  return out
 end
 
 -- M.setup()
