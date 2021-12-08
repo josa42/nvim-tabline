@@ -5,9 +5,11 @@ local M = {}
 function M.setup()
   vim.cmd([[
     hi! TabLineSel        guibg=#282c34 guifg=#abb2bf
+    hi! TabLineSelBold    guibg=#282c34 guifg=#abb2bf gui=bold
     hi! TabLineSelMarker  guibg=#282c34 guifg=#61afef
     hi! TabLineSelMeta    guibg=#282c34 guifg=#4b5263
     hi! TabLine              guibg=#21252B guifg=#5c6370
+    hi! TabLineBold          guibg=#21252B guifg=#5c6370 gui=bold
     hi! TabLineMarker        guibg=#21252B guifg=#4b5263
     hi! TabLineMeta          guibg=#21252B guifg=#4b5263
     hi! TabLineFill guibg=#21252B
@@ -46,20 +48,20 @@ function M.tabs()
   local current_tab_id = api.nvim_get_current_tabpage()
 
   local lastSel = false
+  local hi = 'TabLine'
+  local h = function(k, str, k2)
+    if k2 ~= nil then
+      return highlight(hi .. k, str, hi .. k2)
+    end
+    return highlight(hi .. k, str, nil)
+  end
+
   for i, tab_id in ipairs(api.nvim_list_tabpages()) do
-    lastSel = tab_id == current_tab_id
     local buf_names = {}
     local bufs = {}
 
-    local hi = 'TabLine'
     if tab_id == current_tab_id then
       hi = 'TabLineSel'
-    end
-    local h = function(k, str, k2)
-      if k2 ~= nil then
-        return highlight(hi .. k, str, hi .. k2)
-      end
-      return highlight(hi .. k, str, nil)
     end
 
     for _, win_id in ipairs(api.nvim_tabpage_list_wins(tab_id)) do
@@ -80,10 +82,10 @@ function M.tabs()
         ext = '.' .. ext
       end
 
-      local ext_pre = root:match('[-_.]test')
+      local ext_pre = root:match('[-_.]test$')
       if ext_pre ~= nil then
         ext = ext_pre .. ext
-        root = root:gsub('[-_.]test', '')
+        root = root:gsub('[-_.]test$', '')
       end
 
       if bufs[root] == nil then
@@ -97,20 +99,20 @@ function M.tabs()
     end
 
     for root, exts in pairs(bufs) do
-      -- local name =  '%' .. (i + 1) .. 'T' .. (i + 1)  ..
       local name = vim.fn.fnamemodify(root, ':t')
 
       if not name or name == '' then
         table.insert(buf_names, h('', '[No Name]'))
       elseif #exts == 1 then
-        table.insert(buf_names, h('', name .. '' .. exts[1]))
+        table.insert(buf_names, h('Bold', name, '') .. exts[1])
       else
-        -- table.insert(buf_names, name .. table.concat(exts, ','))
         table.insert(
           buf_names,
           table.concat({
-            h('', name),
-            h('', table.concat(exts, h('Meta', '⏐', ''))),
+            h('Bold', name),
+            h('Meta', '[', ''),
+            table.concat(exts, h('Meta', '⏐', '')),
+            h('Meta', ']', ''),
           }, '')
         )
       end
@@ -118,19 +120,28 @@ function M.tabs()
 
     local tab = table.concat(buf_names, h('Meta', ' ⏐ '))
     tab = '   ' .. tab .. '   '
-    tab = highlight(hi .. 'Marker', '⎸') .. tab -- highlight(hi, tab)
+    if lastSel then
+      tab = h('', ' ') .. tab
+    else
+      tab = h('Marker', '⎸') .. tab
+    end
+
+    -- make tab clickable and draggable
     tab = '%' .. i .. 'T' .. tab .. '%T'
+
     -- tab = click_handler('TablineSwitchTab', tab_id, '%' .. i .. 'T' .. tab)
 
-    -- local tabh = highlight.component_format_highlight(highlights.tab .. tab)
     table.insert(tabs, tab)
+
+    hi = 'TabLine'
+    lastSel = tab_id == current_tab_id
   end
 
-  local out = table.concat(tabs, highlight('TabLineFill', ''))
+  local out = table.concat(tabs, '')
   if lastSel then
-    out = out .. highlight('TabLineFill', ' ')
+    out = out .. h('Fill', ' ')
   else
-    out = out .. highlight('TabLineMeta', '⏐', 'TabLineFill')
+    out = out .. h('Meta', '⎸', 'Fill')
   end
 
   return out
