@@ -3,7 +3,7 @@ local api = vim.api
 local M = {}
 
 function M.setup()
-  vim.cmd [[
+  vim.cmd([[
     hi! TabLineSel        guibg=#282c34 guifg=#abb2bf
     hi! TabLineSelMarker  guibg=#282c34 guifg=#61afef
     hi! TabLineSelMeta    guibg=#282c34 guifg=#4b5263
@@ -11,35 +11,34 @@ function M.setup()
     hi! TabLineMarker        guibg=#21252B guifg=#4b5263
     hi! TabLineMeta          guibg=#21252B guifg=#4b5263
     hi! TabLineFill guibg=#21252B
-
-    function! TablineSwitchTab(arg, clicks, btn, modifiers) abort
-      call luaeval("require('tabline').switchTab(_A)", a:arg)
-    endfunction
-  ]]
+  ]])
+  -- function! TablineSwitchTab(arg, clicks, btn, modifiers) abort
+  --   call luaeval("require('tabline').switchTab(_A)", a:arg)
+  -- endfunction
 
   function _G.__tabline()
-    return  M.tabs()
+    return M.tabs()
   end
 
   vim.opt.showtabline = 2
   vim.opt.tabline = '%!v:lua.__tabline()'
 end
 
-local function highlight(hl, str, hl_end) 
+local function highlight(hl, str, hl_end)
   str = '%#' .. hl .. '#' .. str
   if hl_end ~= nil then
-return str .. '%#' .. hl_end .. '#'
+    return str .. '%#' .. hl_end .. '#'
   end
   return str
 end
 
-local function click_handler(handler, arg, str)
-  return '%' .. arg .. '@' .. handler .. '@' .. str .. '%X'
-end
+-- local function click_handler(handler, arg, str)
+--   return '%' .. arg .. '@' .. handler .. '@' .. str .. '%X'
+-- end
 
-function M.switchTab(tab_id)
-  api.nvim_set_current_tabpage(tab_id)
-end
+-- function M.switchTab(tab_id)
+--   api.nvim_set_current_tabpage(tab_id)
+-- end
 
 function M.tabs()
   local tabs = {}
@@ -47,7 +46,7 @@ function M.tabs()
   local current_tab_id = api.nvim_get_current_tabpage()
 
   local lastSel = false
-  for _,tab_id in ipairs(api.nvim_list_tabpages()) do
+  for i, tab_id in ipairs(api.nvim_list_tabpages()) do
     lastSel = tab_id == current_tab_id
     local buf_names = {}
     local bufs = {}
@@ -63,21 +62,20 @@ function M.tabs()
       return highlight(hi .. k, str, nil)
     end
 
-
-    for _,win_id in ipairs(api.nvim_tabpage_list_wins(tab_id)) do
+    for _, win_id in ipairs(api.nvim_tabpage_list_wins(tab_id)) do
       local buf_id = api.nvim_win_get_buf(win_id)
-      local buftype = vim.fn.getbufvar(buf_id, "&buftype")
+      local buftype = vim.fn.getbufvar(buf_id, '&buftype')
 
       if buftype == 'nofile' or buftype == 'prompt' or buftype == 'quickfix' then
         goto continue
       end
 
-      local filepath = vim.fn.expand("#" .. buf_id .. ":p:~")
+      local filepath = vim.fn.expand('#' .. buf_id .. ':p:~')
       -- local name = vim.fn.fnamemodify(filepath, ":p:t")
       -- local filetype = vim.fn.getbufvar(buf_id, "&filetype")
 
-      local root = vim.fn.fnamemodify(filepath, ":r")
-      local ext = vim.fn.fnamemodify(filepath, ":e")
+      local root = vim.fn.fnamemodify(filepath, ':r')
+      local ext = vim.fn.fnamemodify(filepath, ':e')
       if ext ~= '' then
         ext = '.' .. ext
       end
@@ -98,8 +96,9 @@ function M.tabs()
       ::continue::
     end
 
-    for root,exts in pairs(bufs) do
-      local name = vim.fn.fnamemodify(root, ":t")
+    for root, exts in pairs(bufs) do
+      -- local name =  '%' .. (i + 1) .. 'T' .. (i + 1)  ..
+      local name = vim.fn.fnamemodify(root, ':t')
 
       if not name or name == '' then
         table.insert(buf_names, h('', '[No Name]'))
@@ -107,18 +106,21 @@ function M.tabs()
         table.insert(buf_names, h('', name .. '' .. exts[1]))
       else
         -- table.insert(buf_names, name .. table.concat(exts, ','))
-        table.insert(buf_names, table.concat({
-          h('', name),
-          h('', table.concat(exts, h('Meta', '⏐', ''))),
-        }, ''))
-
+        table.insert(
+          buf_names,
+          table.concat({
+            h('', name),
+            h('', table.concat(exts, h('Meta', '⏐', ''))),
+          }, '')
+        )
       end
     end
 
-    local tab = table.concat(buf_names,  h('Meta', ' ⏐ '))
-    tab = '   ' .. tab .. '   ';
-    tab = highlight(hi ..'Marker', '⎸') .. tab -- highlight(hi, tab)
-    tab = click_handler('TablineSwitchTab', tab_id, tab)
+    local tab = table.concat(buf_names, h('Meta', ' ⏐ '))
+    tab = '   ' .. tab .. '   '
+    tab = highlight(hi .. 'Marker', '⎸') .. tab -- highlight(hi, tab)
+    tab = '%' .. i .. 'T' .. tab .. '%T'
+    -- tab = click_handler('TablineSwitchTab', tab_id, '%' .. i .. 'T' .. tab)
 
     -- local tabh = highlight.component_format_highlight(highlights.tab .. tab)
     table.insert(tabs, tab)
@@ -126,7 +128,7 @@ function M.tabs()
 
   local out = table.concat(tabs, highlight('TabLineFill', ''))
   if lastSel then
-    out = out .. highlight('TabLineFill', '')
+    out = out .. highlight('TabLineFill', ' ')
   else
     out = out .. highlight('TabLineMeta', '⏐', 'TabLineFill')
   end
@@ -135,4 +137,3 @@ function M.tabs()
 end
 
 return M
-
