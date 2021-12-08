@@ -1,18 +1,16 @@
 local api = vim.api
--- local highlight = require('lualine.highlight')
 
 local M = {}
 
-    -- // 
 function M.setup()
   vim.cmd [[
-    hi! TablineTabActive        guibg=#282c34 guifg=#abb2bf
-    hi! TablineTabActiveMarker  guibg=#282c34 guifg=#61afef
-    hi! TablineTabActiveMeta    guibg=#282c34 guifg=#4b5263
-    hi! TablineTab              guibg=#21252B guifg=#5c6370
-    hi! TablineTabMarker        guibg=#21252B guifg=#4b5263
-    hi! TablineTabMeta          guibg=#21252B guifg=#4b5263
-    hi! TablineBackground guibg=#21252B
+    hi! TabLineSel        guibg=#282c34 guifg=#abb2bf
+    hi! TabLineSelMarker  guibg=#282c34 guifg=#61afef
+    hi! TabLineSelMeta    guibg=#282c34 guifg=#4b5263
+    hi! TabLine              guibg=#21252B guifg=#5c6370
+    hi! TabLineMarker        guibg=#21252B guifg=#4b5263
+    hi! TabLineMeta          guibg=#21252B guifg=#4b5263
+    hi! TabLineFill guibg=#21252B
 
     function! TablineSwitchTab(arg, clicks, btn, modifiers) abort
       call luaeval("require('tabline').switchTab(_A)", a:arg)
@@ -48,15 +46,15 @@ function M.tabs()
 
   local current_tab_id = api.nvim_get_current_tabpage()
 
-  local lastActive = false
+  local lastSel = false
   for _,tab_id in ipairs(api.nvim_list_tabpages()) do
-    lastActive = tab_id == current_tab_id
+    lastSel = tab_id == current_tab_id
     local buf_names = {}
     local bufs = {}
 
-    local hi = 'TablineTab'
+    local hi = 'TabLine'
     if tab_id == current_tab_id then
-      hi = 'TablineTabActive'
+      hi = 'TabLineSel'
     end
     local h = function(k, str, k2)
       if k2 ~= nil then
@@ -126,24 +124,15 @@ function M.tabs()
     table.insert(tabs, tab)
   end
 
-  local out = table.concat(tabs, highlight('TablineBackground', ''))
-  if lastActive then
-    out = out .. highlight('TablineBackground', '')
+  local out = table.concat(tabs, highlight('TabLineFill', ''))
+  if lastSel then
+    out = out .. highlight('TabLineFill', '')
   else
-    out = out .. highlight('TablineTabMeta', '⏐', 'TablineBackground')
+    out = out .. highlight('TabLineMeta', '⏐', 'TabLineFill')
   end
 
   return out
 end
-
--- M.setup()
--- _G.lualine_tabs = M.tabs
--- vim.cmd 'redrawtabline'
--- vim.cmd [[
---   au BufWritePost tabline.lua luafile <afile>
---   au BufWritePost tabline.lua redrawtabline
--- ]]
-
 
 return M
 
