@@ -1,6 +1,7 @@
 local api = vim.api
 
 local M = {}
+local l = {}
 
 function M.setup()
   vim.cmd([[
@@ -23,7 +24,7 @@ function M.setup()
   end
 
   vim.opt.showtabline = 2
-  vim.opt.tabline = '%!v:lua.__tabline()'
+  vim.opt.tabline = "%!v:lua.require('tabline').tabs()"
 end
 
 local function highlight(hl, str, hl_end)
@@ -37,6 +38,15 @@ end
 -- local function click_handler(handler, arg, str)
 --   return '%' .. arg .. '@' .. handler .. '@' .. str .. '%X'
 -- end
+--
+function M.switchTabIdx(idx)
+  for i, tab_id in ipairs(api.nvim_list_tabpages()) do
+    if idx == i then
+      print(i, idx)
+      return api.nvim_set_current_tabpage(tab_id)
+    end
+  end
+end
 
 -- function M.switchTab(tab_id)
 --   api.nvim_set_current_tabpage(tab_id)
@@ -57,85 +67,31 @@ function M.tabs()
   end
 
   for i, tab_id in ipairs(api.nvim_list_tabpages()) do
-    local buf_names = {}
-    local bufs = {}
-
     if tab_id == current_tab_id then
       hi = 'TabLineSel'
-    end
-
-    for _, win_id in ipairs(api.nvim_tabpage_list_wins(tab_id)) do
-      local buf_id = api.nvim_win_get_buf(win_id)
-      local buftype = vim.fn.getbufvar(buf_id, '&buftype')
-
-      if buftype == 'nofile' or buftype == 'prompt' or buftype == 'quickfix' then
-        goto continue
-      end
-
-      local filepath = vim.fn.expand('#' .. buf_id .. ':p:~')
-      -- local name = vim.fn.fnamemodify(filepath, ":p:t")
-      -- local filetype = vim.fn.getbufvar(buf_id, "&filetype")
-
-      local root = vim.fn.fnamemodify(filepath, ':r')
-      local ext = vim.fn.fnamemodify(filepath, ':e')
-      if ext ~= '' then
-        ext = '.' .. ext
-      end
-
-      local ext_pre = root:match('[-_.]test$')
-      if ext_pre ~= nil then
-        ext = ext_pre .. ext
-        root = root:gsub('[-_.]test$', '')
-      end
-
-      if bufs[root] == nil then
-        bufs[root] = { ext }
-      else
-        table.insert(bufs[root], ext)
-      end
-
-      -- table.insert(buf_names, name)
-      ::continue::
-    end
-
-    for root, exts in pairs(bufs) do
-      local name = vim.fn.fnamemodify(root, ':t')
-
-      if not name or name == '' then
-        table.insert(buf_names, h('', '[No Name]'))
-      elseif #exts == 1 then
-        table.insert(buf_names, h('Bold', name, '') .. exts[1])
-      else
-        table.insert(
-          buf_names,
-          table.concat({
-            h('Bold', name),
-            h('Meta', '[', ''),
-            table.concat(exts, h('Meta', '⏐', '')),
-            h('Meta', ']', ''),
-          }, '')
-        )
-      end
-    end
-
-    local tab = table.concat(buf_names, h('Meta', ' ⏐ '))
-    tab = '   ' .. tab .. '   '
-    if lastSel then
-      tab = h('', ' ') .. tab
     else
+      hi = 'TabLine'
+    end
+
+    local files = l.get_tab_files(tab_id)
+    local tab = l.format_tab_files(files, h)
+
+    if tab_id == current_tab_id or not (lastSel or i == 1) then
       tab = h('Marker', '⎸') .. tab
+    else
+      tab = h('', ' ') .. tab
     end
 
     -- make tab clickable and draggable
     tab = '%' .. i .. 'T' .. tab .. '%T'
-
     -- tab = click_handler('TablineSwitchTab', tab_id, '%' .. i .. 'T' .. tab)
 
     table.insert(tabs, tab)
 
-    hi = 'TabLine'
     lastSel = tab_id == current_tab_id
   end
+
+  hi = 'TabLine'
 
   local out = table.concat(tabs, '')
   if lastSel then
@@ -145,6 +101,67 @@ function M.tabs()
   end
 
   return out
+end
+
+function l.get_tab_files(tab_id)
+  local files = {}
+
+  for _, win_id in ipairs(api.nvim_tabpage_list_wins(tab_id)) do
+    local buf_id = api.nvim_win_get_buf(win_id)
+    local buftype = vim.fn.getbufvar(buf_id, '&buftype')
+
+    if buftype == 'nofile' or buftype == 'prompt' or buftype == 'quickfix' then
+      goto continue
+    end
+
+    local filepath = vim.fn.expand('#' .. buf_id .. ':p:~')
+
+    local root = vim.fn.fnamemodify(filepath, ':r')
+    local ext = vim.fn.fnamemodify(filepath, ':e')
+    if ext ~= '' then
+      ext = '.' .. ext
+    end
+
+    local ext_pre = root:match('[-_.]test$')
+    if ext_pre ~= nil then
+      ext = ext_pre .. ext
+      root = root:gsub('[-_.]test$', '')
+    end
+
+    if files[root] == nil then
+      files[root] = {}
+    end
+    table.insert(files[root], ext)
+
+    ::continue::
+  end
+
+  return files
+end
+
+function l.format_tab_files(files, h)
+  local buf_names = {}
+  for root, exts in pairs(files) do
+    local name = vim.fn.fnamemodify(root, ':t')
+
+    if not name or name == '' then
+      table.insert(buf_names, h('', '[No Name]'))
+    elseif #exts == 1 then
+      table.insert(buf_names, h('Bold', name, '') .. exts[1])
+    else
+      table.insert(
+        buf_names,
+        table.concat({
+          h('Bold', name),
+          h('Meta', '[', ''),
+          table.concat(exts, h('Meta', '⏐', '')),
+          h('Meta', ']', ''),
+        }, '')
+      )
+    end
+  end
+
+  return '   ' .. table.concat(buf_names, h('Meta', ' ⏐ ')) .. '   '
 end
 
 return M
