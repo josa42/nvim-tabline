@@ -5,26 +5,22 @@ local l = {}
 
 function M.setup()
   vim.cmd([[
-    hi! TabLineSel        guibg=#282c34 guifg=#abb2bf
-    hi! TabLineSelBold    guibg=#282c34 guifg=#abb2bf gui=bold
-    hi! TabLineSelMarker  guibg=#282c34 guifg=#61afef
-    hi! TabLineSelMeta    guibg=#282c34 guifg=#4b5263
-    hi! TabLine              guibg=#21252B guifg=#5c6370
-    hi! TabLineBold          guibg=#21252B guifg=#5c6370 gui=bold
-    hi! TabLineMarker        guibg=#21252B guifg=#4b5263
-    hi! TabLineMeta          guibg=#21252B guifg=#4b5263
-    hi! TabLineFill guibg=#21252B
+    hi! TabLineSel       guibg=#282c34 guifg=#abb2bf
+    hi! TabLineSelBold   guibg=#282c34 guifg=#abb2bf gui=bold
+    hi! TabLineSelMarker guibg=#282c34 guifg=#61afef
+    hi! TabLineSelMeta   guibg=#282c34 guifg=#4b5263
+    hi! TabLine          guibg=#21252B guifg=#5c6370
+    hi! TabLineBold      guibg=#21252B guifg=#5c6370 gui=bold
+    hi! TabLineMarker    guibg=#21252B guifg=#4b5263
+    hi! TabLineMeta      guibg=#21252B guifg=#4b5263
+    hi! TabLineFill      guibg=#21252B
   ]])
   -- function! TablineSwitchTab(arg, clicks, btn, modifiers) abort
   --   call luaeval("require('tabline').switchTab(_A)", a:arg)
   -- endfunction
 
-  function _G.__tabline()
-    return M.tabs()
-  end
-
   vim.opt.showtabline = 2
-  vim.opt.tabline = "%!v:lua.require('tabline').tabs()"
+  vim.opt.tabline = "%!v:lua.require('tabline').render()"
 end
 
 local function highlight(hl, str, hl_end)
@@ -48,11 +44,17 @@ function M.switchTabIdx(idx)
   end
 end
 
+function M.render()
+  local tree_width = l.file_tree_width()
+
+  return (tree_width > 0 and highlight('TabLine', (' '):rep(tree_width + 1)) or '') .. l.tabs()
+end
+
 -- function M.switchTab(tab_id)
 --   api.nvim_set_current_tabpage(tab_id)
 -- end
 
-function M.tabs()
+function l.tabs()
   local tabs = {}
 
   local current_tab_id = api.nvim_get_current_tabpage()
@@ -101,6 +103,18 @@ function M.tabs()
   end
 
   return out
+end
+
+function l.file_tree_width()
+  local tab_id = vim.api.nvim_get_current_tabpage()
+  for _, win_id in ipairs(api.nvim_tabpage_list_wins(tab_id)) do
+    local buf_id = api.nvim_win_get_buf(win_id)
+    if vim.fn.getbufvar(buf_id, '__is-file-tree') == true then
+      return vim.api.nvim_win_get_width(win_id)
+    end
+  end
+
+  return 0
 end
 
 function l.get_tab_files(tab_id)
