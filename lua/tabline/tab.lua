@@ -7,7 +7,7 @@ function Tab:new(t)
   setmetatable(t, self)
   self.__index = self
 
-  self.files = l.get_tab_files(t.tab_id)
+  t.files = l.get_tab_files(t.tab_id)
 
   return t
 end
