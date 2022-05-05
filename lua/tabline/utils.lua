@@ -43,4 +43,19 @@ function M.find_end(list, fn)
   return ret
 end
 
+function M.find_start(list, fn)
+  local ret = {}
+  local found = false
+
+  for i, value in ipairs(list) do
+    found = found or fn(value, i)
+
+    if found then
+      table.insert(ret, value)
+    end
+  end
+
+  return ret
+end
+
 return M
