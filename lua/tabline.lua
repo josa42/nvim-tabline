@@ -1,5 +1,9 @@
 local api = vim.api
 local highlight = require('tabline.utils').highlight
+local file_tree_width = require('tabline.utils').file_tree_width
+
+local map = require('tabline.utils').map
+local find_end = require('tabline.utils').find_end
 
 local Tab = require('tabline.tab')
 
@@ -34,55 +38,44 @@ function M.switchTabIdx(idx)
 end
 
 function M.render()
-  local tree_width = l.file_tree_width()
+  local tree_width = file_tree_width()
 
   return (tree_width > 0 and highlight('TabLine', (' '):rep(tree_width + 1)) or '')
     .. l.tabs(vim.o.columns - (tree_width + 1))
 end
 
 function l.tabs(width)
-  local tabs = {}
-  local tab_objs = {}
-
-  local current_tab_id = api.nvim_get_current_tabpage()
-
-  local lastSel = false
+  local tabs = Tab.list()
 
   local total_width = 0
-  local has_more = false
-
-  local tabpages = api.nvim_list_tabpages()
-  for i, tab_id in ipairs(tabpages) do
-    local tab = Tab:new({
-      index = i,
-      tab_id = tab_id,
-      current = tab_id == current_tab_id,
-    })
-
-    table.insert(tab_objs, tab)
-  end
 
   -- TODO make sure current tab is visible
-  for i, tab in ipairs(tab_objs) do
+  local tabs_visible = find_end(tabs, function(tab, i)
     local tab_width = tab:chars()
-    local needed_width = i == #tab_objs and (total_width + tab_width) or (total_width + tab_width + 2)
+    local needed_width = i == #tabs and (total_width + tab_width) or (total_width + tab_width + 3)
 
     if needed_width > width then
-      has_more = true
-      break
+      return true
     end
 
-    table.insert(tabs, tab:render(lastSel))
     total_width = total_width + tab_width
+    return false
+  end)
 
-    lastSel = tab.selected
-  end
-
-  local out = table.concat(tabs, '')
+  local has_more = #tabs_visible < #tabs
+  local out = table.concat(
+    map(tabs_visible, function(tab, i)
+      return tab:render({
+        previous = i == 1 and nil or tabs[i + 1],
+        next = i == #tabs and nil or tabs[i + 1],
+      })
+    end),
+    ''
+  )
 
   if total_width < width then
     total_width = total_width + 1
-    if lastSel then
+    if #tabs > 0 and tabs[#tabs].selected then
       out = out .. highlight('TabLineFill', ' ')
     else
       out = out .. highlight('TabLineMeta', '⎸', 'Fill')
@@ -94,19 +87,6 @@ function l.tabs(width)
   end
 
   return out
-end
-
--- TODO move into utils
-function l.file_tree_width()
-  local tab_id = vim.api.nvim_get_current_tabpage()
-  for _, win_id in ipairs(api.nvim_tabpage_list_wins(tab_id)) do
-    local buf_id = api.nvim_win_get_buf(win_id)
-    if vim.fn.getbufvar(buf_id, '__is-file-tree') == true then
-      return vim.api.nvim_win_get_width(win_id)
-    end
-  end
-
-  return 0
 end
 
 return M

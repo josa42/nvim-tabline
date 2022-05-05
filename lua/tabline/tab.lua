@@ -12,6 +12,24 @@ function Tab:new(t)
   return t
 end
 
+function Tab.list()
+  local tabs = {}
+  local current_tab_id = vim.api.nvim_get_current_tabpage()
+
+  local tabpages = vim.api.nvim_list_tabpages()
+  for i, tab_id in ipairs(tabpages) do
+    local tab = Tab:new({
+      index = i,
+      tab_id = tab_id,
+      current = tab_id == current_tab_id,
+    })
+
+    table.insert(tabs, tab)
+  end
+
+  return tabs
+end
+
 function Tab:hi(key, str, key_end)
   local hi = self.current and 'TabLineSel' or 'TabLine'
 
@@ -21,10 +39,11 @@ function Tab:hi(key, str, key_end)
   return highlight(hi .. key, str, nil)
 end
 
-function Tab:render(lastSel)
+function Tab:render(ctx)
+  ctx = ctx or {}
   local out = ''
 
-  if self.current or not lastSel then
+  if self.current or not (ctx.previous == nil or ctx.previous.selected) then
     out = self:hi('Marker', '⎸')
   else
     out = self:hi('', ' ')
@@ -41,7 +60,7 @@ end
 
 -- TODO amke this smarter
 function Tab:chars()
-  return vim.fn.strchars(self:render(false):gsub('%%#[^#]+#', ''):gsub('%%[0-9]*T', ''):gsub('%%[0-9]*T', ''))
+  return vim.fn.strchars(self:render():gsub('%%#[^#]+#', ''):gsub('%%[0-9]*T', ''):gsub('%%[0-9]*T', ''))
 end
 
 function l.get_tab_files(tab_id)
