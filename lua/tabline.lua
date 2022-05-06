@@ -52,9 +52,10 @@ function M.render()
   local width_rendered = 0
 
   local tree_width = file_tree_width()
-  width = width - (tree_width + 1)
-
-  render('prefix', (tree_width > 0 and render_spacer('TabLineFill', tree_width + 1) or ''))
+  if tree_width > 0 then
+    width = width - (tree_width + 1)
+    render('prefix', render_spacer('TabLineFill', tree_width + 1))
+  end
 
   local tabs = Tab.list()
 
@@ -62,7 +63,7 @@ function M.render()
 
   local tabs_visible = find_end(tabs, function(tab, i)
     local tab_width = tab:chars()
-    local needed_width = i == #tabs and (width_rendered + tab_width) or (width_rendered + tab_width + 3)
+    local needed_width = i == #tabs and (width_rendered + tab_width) or (width_rendered + tab_width + 2)
 
     if current_not_found and needed_width > width then
       return true
@@ -77,8 +78,8 @@ function M.render()
   local has_more_end = tabs_visible[#tabs_visible].tab_id ~= tabs[#tabs].tab_id
 
   tabs_visible = find_start(tabs_visible, function(tab, i)
-    local more_end = has_more_end and 3 or 0
-    local more_start = i > 1 and 3 or 0
+    local more_start = i > 1 and 2 or 0
+    local more_end = has_more_end and 2 or 0
 
     if width_rendered + more_start + more_end > width then
       width_rendered = width_rendered - tab:chars()
@@ -117,10 +118,10 @@ function M.render()
   -- TODO refactor
   if width_rendered < width then
     width_rendered = width_rendered + 1
-    if #tabs > 0 and tabs[#tabs].selected then
+    if tabs_visible[#tabs_visible].current then
       render('tabs', highlight('TabLineFill', ' '))
     else
-      render('tabs', highlight('TabLineFillMarker', '⎸', 'Fill'))
+      render('tabs', highlight('TabLineFillMarker', '⎸'))
     end
   end
 
