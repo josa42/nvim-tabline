@@ -1,5 +1,6 @@
 local api = vim.api
 local highlight = require('tabline.utils').highlight
+local render_spacer = require('tabline.utils').render_spacer
 local file_tree_width = require('tabline.utils').file_tree_width
 
 local map = require('tabline.utils').map
@@ -42,28 +43,34 @@ function M.switchTabIdx(idx)
 end
 
 function M.render()
+  local out = { prefix = '', start_more = '', tabs = '', end_more = '', spacer = '' }
+  local render = function(key, str)
+    out[key] = out[key] .. str
+  end
+
+  local width = vim.o.columns
+  local width_rendered = 0
+
   local tree_width = file_tree_width()
+  width = width - (tree_width + 1)
 
-  return (tree_width > 0 and highlight('TabLineFill', (' '):rep(tree_width + 1)) or '')
-    .. l.tabs(vim.o.columns - (tree_width + 1))
-end
+  render('prefix', (tree_width > 0 and render_spacer('TabLineFill', tree_width + 1) or ''))
 
-function l.tabs(width)
   local tabs = Tab.list()
 
-  local total_width = 0
   local current_not_found = false
 
   local tabs_visible = find_end(tabs, function(tab, i)
     local tab_width = tab:chars()
-    local needed_width = i == #tabs and (total_width + tab_width) or (total_width + tab_width + 3)
+    local needed_width = i == #tabs and (width_rendered + tab_width) or (width_rendered + tab_width + 3)
 
     if current_not_found and needed_width > width then
       return true
     end
 
     current_not_found = current_not_found or tab.current
-    total_width = total_width + tab_width
+    width_rendered = width_rendered + tab_width
+
     return false
   end)
 
@@ -73,8 +80,8 @@ function l.tabs(width)
     local more_end = has_more_end and 3 or 0
     local more_start = i > 1 and 3 or 0
 
-    if total_width + more_start + more_end > width then
-      total_width = total_width - tab:chars()
+    if width_rendered + more_start + more_end > width then
+      width_rendered = width_rendered - tab:chars()
       return false
     end
 
@@ -83,52 +90,49 @@ function l.tabs(width)
 
   local has_more_start = tabs_visible[1].tab_id ~= tabs[1].tab_id
 
-  local out = ''
-  local render = function(str)
-    out = out .. str
-  end
-
   -- has more at start indicator
   if has_more_start then
-    render(' ')
-    total_width = total_width + 2
-
-    if not has_more_end then
-      local spacer_width = width - total_width
-
-      total_width = total_width + spacer_width
-      render(highlight('', (' '):rep(spacer_width)))
-    end
+    render('start_more', ' ')
+    width_rendered = width_rendered + 2
+  elseif #tabs_visible < #tabs then
+    render('start_more', '  ')
+    width_rendered = width_rendered + 2
   end
 
   -- tabs
-  render(table.concat(
-    map(tabs_visible, function(tab, i)
-      return tab:render({
-        -- previous = i == 1 and nil or tabs[i - 1],
-        -- next = i == #tabs and nil or tabs[i + 1],
-      })
-    end),
-    ''
-  ))
+  render(
+    'tabs',
+    table.concat(
+      map(tabs_visible, function(tab, i)
+        return tab:render({
+          previous = i == 1 and nil or tabs[i - 1],
+          next = i == #tabs and nil or tabs[i + 1],
+        })
+      end),
+      ''
+    )
+  )
 
   -- last tab end
   -- TODO refactor
-  if total_width < width then
-    total_width = total_width + 1
+  if width_rendered < width then
+    width_rendered = width_rendered + 1
     if #tabs > 0 and tabs[#tabs].selected then
-      render(highlight('TabLineFill', ' '))
+      render('tabs', highlight('TabLineFill', ' '))
     else
-      render(highlight('TabLineFillMarker', '⎸', 'Fill'))
+      render('tabs', highlight('TabLineFillMarker', '⎸', 'Fill'))
     end
   end
 
   -- has more at end indicator
   if has_more_end then
-    render(highlight('TabLineFill', (' '):rep(width - total_width - 2)) .. ' ')
+    width_rendered = width_rendered + 2
+    render('end_more', ' ')
   end
 
-  return out
+  render('spacer', render_spacer('TabLineFill', width - width_rendered))
+
+  return out.prefix .. out.start_more .. out.tabs .. out.spacer .. out.end_more
 end
 
 return M

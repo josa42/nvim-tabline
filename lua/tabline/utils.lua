@@ -8,6 +8,10 @@ function M.highlight(hl, str, hl_end)
   return str
 end
 
+function M.render_spacer(hl, width)
+  return M.highlight(hl, (' '):rep(width))
+end
+
 -- TODO move into utils
 function M.file_tree_width()
   local tab_id = vim.api.nvim_get_current_tabpage()
