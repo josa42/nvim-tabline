@@ -4,6 +4,8 @@ local Tab = {}
 local l = {}
 
 function Tab:new(t)
+  t = t or {}
+
   setmetatable(t, self)
   self.__index = self
 
@@ -43,11 +45,12 @@ function Tab:render(ctx)
   ctx = ctx or {}
   local out = ''
 
-  if self.current or not (ctx.previous == nil or ctx.previous.selected) then
-    out = self:hi('Marker', '⎸')
-  else
-    out = self:hi('', ' ')
-  end
+  out = out .. self:hi('Marker', '⎸', '')
+  -- if self.current == true or not (ctx.previous and ctx.previous.current) then
+  --   out = out .. self:hi('Marker', '⎸', '')
+  -- else
+  --   out = out .. self:hi('Marker', ' ', '')
+  -- end
 
   out = out .. l.format_tab_files(self.files, function(key, str, key_end)
     return self:hi(key, str, key_end)

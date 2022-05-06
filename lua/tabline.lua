@@ -13,15 +13,18 @@ local l = {}
 
 function M.setup()
   vim.cmd([[
-    hi! TabLineSel       guibg=#282c34 guifg=#abb2bf
-    hi! TabLineSelBold   guibg=#282c34 guifg=#abb2bf gui=bold
-    hi! TabLineSelMarker guibg=#282c34 guifg=#61afef
-    hi! TabLineSelMeta   guibg=#282c34 guifg=#4b5263
-    hi! TabLine          guibg=#21252B guifg=#5c6370
-    hi! TabLineBold      guibg=#21252B guifg=#5c6370 gui=bold
-    hi! TabLineMarker    guibg=#21252B guifg=#4b5263
-    hi! TabLineMeta      guibg=#21252B guifg=#4b5263
-    hi! TabLineFill      guibg=#21252B
+    hi! TabLineSel        guibg=#282c34 guifg=#abb2bf
+    hi! TabLineSelBold    guibg=#282c34 guifg=#abb2bf gui=bold
+    hi! TabLineSelMarker  guibg=#282c34 guifg=#61afef
+    hi! TabLineSelMeta    guibg=#282c34 guifg=#4b5263
+
+    hi! TabLine           guibg=#252830 guifg=#5c6370
+    hi! TabLineBold       guibg=#252830 guifg=#5c6370 gui=bold
+    hi! TabLineMarker     guibg=#252830 guifg=#4b5263
+    hi! TabLineMeta       guibg=#252830 guifg=#4b5263
+
+    hi! TabLineFill       guibg=#21252B
+    hi! TabLineFillMarker guibg=#21252B guifg=#4b5263
 
     noremap <c-t> :tabe<cr>
   ]])
@@ -41,7 +44,7 @@ end
 function M.render()
   local tree_width = file_tree_width()
 
-  return (tree_width > 0 and highlight('TabLine', (' '):rep(tree_width + 1)) or '')
+  return (tree_width > 0 and highlight('TabLineFill', (' '):rep(tree_width + 1)) or '')
     .. l.tabs(vim.o.columns - (tree_width + 1))
 end
 
@@ -94,7 +97,7 @@ function l.tabs(width)
       local spacer_width = width - total_width
 
       total_width = total_width + spacer_width
-      render((' '):rep(spacer_width))
+      render(highlight('', (' '):rep(spacer_width)))
     end
   end
 
@@ -102,8 +105,8 @@ function l.tabs(width)
   render(table.concat(
     map(tabs_visible, function(tab, i)
       return tab:render({
-        previous = i == 1 and nil or tabs[i + 1],
-        next = i == #tabs and nil or tabs[i + 1],
+        -- previous = i == 1 and nil or tabs[i - 1],
+        -- next = i == #tabs and nil or tabs[i + 1],
       })
     end),
     ''
@@ -116,13 +119,13 @@ function l.tabs(width)
     if #tabs > 0 and tabs[#tabs].selected then
       render(highlight('TabLineFill', ' '))
     else
-      render(highlight('TabLineMeta', '⎸', 'Fill'))
+      render(highlight('TabLineFillMarker', '⎸', 'Fill'))
     end
   end
 
   -- has more at end indicator
   if has_more_end then
-    render((' '):rep(width - total_width - 2) .. ' ')
+    render(highlight('TabLineFill', (' '):rep(width - total_width - 2)) .. ' ')
   end
 
   return out
