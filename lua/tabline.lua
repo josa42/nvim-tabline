@@ -10,7 +10,6 @@ local find_start = require('tabline.utils').find_start
 local Tab = require('tabline.tab')
 
 local M = {}
-local l = {}
 
 function M.setup()
   vim.cmd([[
@@ -59,20 +58,19 @@ function M.render()
 
   local tabs = Tab.list()
 
-  local current_not_found = false
+  local current_found = false
 
   local tabs_visible = find_end(tabs, function(tab, i)
     local tab_width = tab:chars()
     local needed_width = i == #tabs and (width_rendered + tab_width) or (width_rendered + tab_width + 2)
 
-    if current_not_found and needed_width > width then
-      return true
+    if needed_width <= width or not current_found then
+      current_found = current_found or tab.current
+      width_rendered = width_rendered + tab_width
+      return false
     end
 
-    current_not_found = current_not_found or tab.current
-    width_rendered = width_rendered + tab_width
-
-    return false
+    return true
   end)
 
   local has_more_end = tabs_visible[#tabs_visible].tab_id ~= tabs[#tabs].tab_id
