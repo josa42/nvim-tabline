@@ -46,6 +46,8 @@ function Tab:render(ctx)
   local out = ''
 
   out = out .. self:hi('Marker', '⎸', '')
+  out = out .. self:hi('Meta', ' ' .. self.index .. '  ', '')
+
   -- if self.current == true or not (ctx.previous and ctx.previous.current) then
   --   out = out .. self:hi('Marker', '⎸', '')
   -- else
@@ -55,6 +57,8 @@ function Tab:render(ctx)
   out = out .. l.format_tab_files(self.files, function(key, str, key_end)
     return self:hi(key, str, key_end)
   end)
+
+  out = out .. '    '
 
   out = '%' .. self.index .. 'T' .. out .. '%T'
 
@@ -124,7 +128,7 @@ function l.format_tab_files(files, h)
     end
   end
 
-  return '   ' .. table.concat(buf_names, h('Meta', ' ⏐ ')) .. '   '
+  return table.concat(buf_names, h('Meta', ' ⏐ '))
 end
 
 return Tab

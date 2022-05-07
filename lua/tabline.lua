@@ -116,11 +116,7 @@ function M.render()
   -- TODO refactor
   if width_rendered < width then
     width_rendered = width_rendered + 1
-    if tabs_visible[#tabs_visible].current then
-      render('tabs', highlight('TabLineFill', ' '))
-    else
-      render('tabs', highlight('TabLineFillMarker', '⎸'))
-    end
+    render('tabs', highlight('TabLineFillMarker', '⎸'))
   end
 
   -- has more at end indicator
