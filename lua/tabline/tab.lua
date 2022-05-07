@@ -1,4 +1,5 @@
 local highlight = require('tabline.utils').highlight
+local some = require('tabline.utils').some
 
 local Tab = {}
 local l = {}
@@ -72,6 +73,7 @@ end
 
 function l.get_tab_files(tab_id)
   local files = {}
+  local filepaths = {}
 
   for _, win_id in ipairs(vim.api.nvim_tabpage_list_wins(tab_id)) do
     local buf_id = vim.api.nvim_win_get_buf(win_id)
@@ -82,6 +84,14 @@ function l.get_tab_files(tab_id)
     end
 
     local filepath = vim.fn.expand('#' .. buf_id .. ':p:~')
+
+    if some(filepaths, function(v)
+      return v == filepath
+    end) then
+      goto continue
+    end
+
+    table.insert(filepaths, filepath)
 
     local root = vim.fn.fnamemodify(filepath, ':r')
     local ext = vim.fn.fnamemodify(filepath, ':e')

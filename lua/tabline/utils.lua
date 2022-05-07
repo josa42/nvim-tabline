@@ -62,4 +62,18 @@ function M.find_start(list, fn)
   return ret
 end
 
+function M.find(list, fn)
+  for _, value in ipairs(list) do
+    if fn(value) then
+      return value
+    end
+  end
+
+  return nil
+end
+
+function M.some(list, fn)
+  return M.find(list, fn) ~= nil
+end
+
 return M
