@@ -33,7 +33,7 @@ function M.setup()
   vim.opt.tabline = "%!v:lua.require('tabline').render()"
 end
 --
-function M.switchTabIdx(idx)
+function M.switch_tab_idx(idx)
   for i, tab_id in ipairs(api.nvim_list_tabpages()) do
     if idx == i then
       return api.nvim_set_current_tabpage(tab_id)
