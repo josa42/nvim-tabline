@@ -30,7 +30,7 @@ function M.setup()
   ]])
 
   vim.opt.showtabline = 2
-  vim.opt.tabline = "%!v:lua.require('tabline').render()"
+  vim.opt.tabline = "%!v:lua.require('tabline').render_safely()"
 end
 --
 function M.switch_tab_idx(idx)
@@ -39,6 +39,18 @@ function M.switch_tab_idx(idx)
       return api.nvim_set_current_tabpage(tab_id)
     end
   end
+end
+
+function M.render_safely()
+  local success, result = pcall(function()
+    return M.render()
+  end)
+
+  if not success and result then
+    vim.notify_once(result, vim.log.levels.ERROR)
+  end
+
+  return result
 end
 
 function M.render()
