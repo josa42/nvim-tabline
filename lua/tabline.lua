@@ -11,7 +11,7 @@ local Tab = require('tabline.tab')
 
 local M = {}
 
-function M.setup()
+local function set_highlights()
   vim.cmd([[
     hi! TabLineSel        guibg=#282c34 guifg=#abb2bf
     hi! TabLineSelBold    guibg=#282c34 guifg=#abb2bf gui=bold
@@ -25,9 +25,17 @@ function M.setup()
 
     hi! TabLineFill       guibg=#21252B
     hi! TabLineFillMarker guibg=#21252B guifg=#4b5263
-
-    noremap <c-t> :tabe<cr>
   ]])
+end
+
+function M.setup()
+  set_highlights()
+  api.nvim_create_autocmd('ColorScheme', {
+    group = api.nvim_create_augroup('tabline', { clear = true }),
+    callback = set_highlights,
+  })
+
+  vim.keymap.set('', '<c-t>', ':tabe<cr>')
 
   vim.opt.showtabline = 2
   vim.opt.tabline = "%!v:lua.require('tabline').render_safely()"
@@ -48,6 +56,7 @@ function M.render_safely()
 
   if not success and result then
     vim.notify_once(result, vim.log.levels.ERROR)
+    return ''
   end
 
   return result
@@ -88,6 +97,11 @@ function M.render()
   local has_more_end = tabs_visible[#tabs_visible].tab_id ~= tabs[#tabs].tab_id
 
   tabs_visible = find_start(tabs_visible, function(tab, i)
+    -- never drop the current tab, even if it does not fit
+    if tab.current then
+      return true
+    end
+
     local more_start = i > 1 and 2 or 0
     local more_end = has_more_end and 2 or 0
 
@@ -116,8 +130,8 @@ function M.render()
     table.concat(
       map(tabs_visible, function(tab, i)
         return tab:render({
-          previous = i == 1 and nil or tabs[i - 1],
-          next = i == #tabs and nil or tabs[i + 1],
+          previous = tabs_visible[i - 1],
+          next = tabs_visible[i + 1],
         })
       end),
       ''

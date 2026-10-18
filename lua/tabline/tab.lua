@@ -1,5 +1,6 @@
 local highlight = require('tabline.utils').highlight
 local some = require('tabline.utils').some
+local find = require('tabline.utils').find
 
 local Tab = {}
 local l = {}
@@ -68,7 +69,8 @@ end
 
 -- TODO amke this smarter
 function Tab:chars()
-  return vim.fn.strchars(self:render():gsub('%%#[^#]+#', ''):gsub('%%[0-9]*T', ''):gsub('%%[0-9]*T', ''))
+  local str = self:render():gsub('%%#[^#]+#', ''):gsub('%%[0-9]*T', ''):gsub('%%%%', '%%')
+  return vim.api.nvim_strwidth(str)
 end
 
 function l.get_tab_files(tab_id)
@@ -83,7 +85,8 @@ function l.get_tab_files(tab_id)
       goto continue
     end
 
-    local filepath = vim.fn.expand('#' .. buf_id .. ':p:~')
+    -- escape '%' so file names are not interpreted as statusline items
+    local filepath = vim.fn.expand('#' .. buf_id .. ':p:~'):gsub('%%', '%%%%')
 
     if some(filepaths, function(v)
       return v == filepath
@@ -105,10 +108,14 @@ function l.get_tab_files(tab_id)
       root = root:gsub('[-_.]test$', '')
     end
 
-    if files[root] == nil then
-      files[root] = {}
+    local file = find(files, function(f)
+      return f.root == root
+    end)
+    if file == nil then
+      file = { root = root, exts = {} }
+      table.insert(files, file)
     end
-    table.insert(files[root], ext)
+    table.insert(file.exts, ext)
 
     ::continue::
   end
@@ -118,8 +125,9 @@ end
 
 function l.format_tab_files(files, h)
   local buf_names = {}
-  for root, exts in pairs(files) do
-    local name = vim.fn.fnamemodify(root, ':t')
+  for _, file in ipairs(files) do
+    local exts = file.exts
+    local name = vim.fn.fnamemodify(file.root, ':t')
 
     if not name or name == '' then
       table.insert(buf_names, h('', '[No Name]'))
